@@ -1,0 +1,23 @@
+{
+  "name": "Coeur Risk - SCORE2",
+  "short_name": "CoeurRisk",
+  "lang": "fr-FR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#b3002d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/ffc-favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/ffc-logo-national.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
