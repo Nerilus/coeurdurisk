@@ -166,6 +166,9 @@ class PatientInput(BaseModel):
 
     # Hérédité
     antecedents_familiaux: Literal["oui", "non", "ne_sais_pas"]
+    bilan_cardiaque: Literal["oui", "non"] = "non"
+    consultation_cardiologue: Literal["oui", "non"] = "non"
+    activite_weekend: Literal["television", "promenade", "jeux_videos", "sport"] = "promenade"
 
     # Mode de vie
     heures_assis: Literal["<3h", "3-7h", ">7h"]
@@ -251,18 +254,64 @@ def send_email_with_pdf(
     msg["From"] = smtp["from_addr"]
     msg["To"] = email_to
     msg["Subject"] = subject
-    msg.set_content(body)
 
-    # Résumé texte (évite que l’utilisateur doive ouvrir le PDF)
-    if "score2" in resultats:
-        s2 = resultats["score2"]
-        summary = (
-            f"\nSCORE2 : {s2.get('mode')} — {s2.get('risque_pct')}%\n"
-            f"Classification : {s2.get('categorie')}\n"
-        )
+    qual = resultats.get("qualitatif", {})
+    recos = qual.get("recommandations", [])[:3]
+    score2 = resultats.get("score2")
+
+    if score2:
+        score2_line = f"SCORE2 : {score2.get('mode')} - {score2.get('risque_pct')}% ({score2.get('categorie')})"
     else:
-        summary = "\nSCORE2 : non calculé (données médicales manquantes)\n"
-    msg.set_content(body + summary)
+        score2_line = "SCORE2 : non calcule (donnees medicales insuffisantes)."
+
+    header = body.strip() if body and body.strip() else (
+        "Bonjour,\n\n"
+        "Veuillez trouver ci-joint votre rapport d'evaluation cardiovasculaire au format PDF.\n"
+    )
+
+    reco_lines = "\n".join([f"- {r}" for r in recos]) if recos else "- Continuez ainsi : votre profil est globalement favorable."
+
+    text_content = (
+        f"{header}\n\n"
+        "Synthese rapide :\n"
+        f"- Risque qualitatif : {qual.get('categorie', 'N/A')}\n"
+        f"- Score qualitatif : {qual.get('score_normalise', 'N/A')}%\n"
+        f"- IMC : {qual.get('imc', 'N/A')} ({qual.get('categorie_imc', 'N/A')})\n"
+        f"- {score2_line}\n\n"
+        "3 actions prioritaires :\n"
+        f"{reco_lines}\n\n"
+        "Ce test est un outil de prevention et ne remplace pas un avis medical. "
+        "En cas de doute, consultez votre medecin traitant ou un cardiologue.\n\n"
+        "Cordialement."
+    )
+    msg.set_content(text_content)
+
+    html_recos = "".join([f"<li>{r}</li>" for r in recos]) if recos else "<li>Continuez ainsi : votre profil est globalement favorable.</li>"
+    html_score2 = score2_line.replace("\n", "<br />")
+    header_html = header.replace("\n", "<br />")
+    msg.add_alternative(
+        f"""
+<html>
+  <body style="font-family: Arial, sans-serif; color: #2d2d2d;">
+    <p>{header_html}</p>
+    <h3 style="margin-bottom: 8px;">Synthese rapide</h3>
+    <ul>
+      <li><b>Risque qualitatif :</b> {qual.get('categorie', 'N/A')}</li>
+      <li><b>Score qualitatif :</b> {qual.get('score_normalise', 'N/A')}%</li>
+      <li><b>IMC :</b> {qual.get('imc', 'N/A')} ({qual.get('categorie_imc', 'N/A')})</li>
+      <li><b>{html_score2}</b></li>
+    </ul>
+    <h3 style="margin-bottom: 8px;">3 actions prioritaires</h3>
+    <ol>{html_recos}</ol>
+    <p style="font-size: 13px; color: #555;">
+      Ce test est un outil de prevention et ne remplace pas un avis medical.
+      En cas de doute, consultez votre medecin traitant ou un cardiologue.
+    </p>
+  </body>
+</html>
+""",
+        subtype="html",
+    )
 
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
@@ -288,6 +337,9 @@ def to_patient_data(inp: PatientInput) -> PatientData:
         poids=inp.poids,
         taille=inp.taille,
         antecedents_familiaux=inp.antecedents_familiaux,
+        bilan_cardiaque=inp.bilan_cardiaque,
+        consultation_cardiologue=inp.consultation_cardiologue,
+        activite_weekend=inp.activite_weekend,
         heures_assis=inp.heures_assis,
         activite_physique=inp.activite_physique,
         tabac=inp.tabac,
@@ -320,6 +372,11 @@ def index() -> FileResponse:
     if not INDEX_FILE.exists():
         raise HTTPException(500, "index.html introuvable")
     return FileResponse(str(INDEX_FILE))
+
+
+@app.get("/api/health")
+def health() -> JSONResponse:
+    return JSONResponse(content={"ok": True, "service": "coeurdurisk"})
 
 
 @app.post("/api/calc")

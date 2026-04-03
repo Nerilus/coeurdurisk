@@ -39,7 +39,7 @@ function transformSelectsToRadios() {
       input.type = "radio";
       input.name = groupName;
       input.value = opt.value;
-      input.checked = opt.value === select.value || (idx === 0 && !select.value);
+      input.checked = opt.value === select.value;
 
       input.addEventListener("change", () => {
         if (!input.checked) return;
@@ -69,39 +69,56 @@ function transformSelectsToRadios() {
   });
 }
 
-function setAnswerMode(mode) {
-  // mode: "radios" | "select"
-  const useSelect = mode === "select";
+function clearFormOnLoad() {
   const selects = form.querySelectorAll("select");
   selects.forEach((select) => {
-    const group = select.parentElement?.querySelector(`.radio-group[data-for-select-id="${select.id}"]`);
-    if (useSelect) {
-      select.classList.remove("is-hidden");
-      if (group) group.classList.add("is-hidden");
-    } else {
-      select.classList.add("is-hidden");
-      if (group) group.classList.remove("is-hidden");
-    }
+    select.selectedIndex = -1;
+    select.value = "";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  const numberAndTextInputs = form.querySelectorAll('input[type="number"], input[type="email"], input[type="text"]');
+  numberAndTextInputs.forEach((input) => {
+    input.value = "";
+  });
+
+  const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = false;
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }));
   });
 }
 
-function setupAnswerModeToggle() {
-  const toggle = document.getElementById("toggleAnswerMode");
-  if (!toggle) return;
+function setupUnknownToggle(inputIds, checkboxId) {
+  const checkbox = document.getElementById(checkboxId);
+  const inputs = inputIds.map((id) => document.getElementById(id)).filter(Boolean);
+  if (!checkbox || inputs.length === 0) return;
 
-  const saved = localStorage.getItem("answer_mode") || "radios";
-  toggle.checked = saved === "select";
-  setAnswerMode(saved === "select" ? "select" : "radios");
+  const sync = () => {
+    inputs.forEach((input) => {
+      if (checkbox.checked) {
+        input.value = "";
+        input.disabled = true;
+      } else {
+        input.disabled = false;
+      }
+    });
+  };
 
-  toggle.addEventListener("change", () => {
-    const mode = toggle.checked ? "select" : "radios";
-    localStorage.setItem("answer_mode", mode);
-    setAnswerMode(mode);
-  });
+  checkbox.addEventListener("change", sync);
+  sync();
+}
+
+function setupUnknownToggles() {
+  setupUnknownToggle(["tension_systolique", "tension_diastolique"], "tension_inconnue");
+  setupUnknownToggle(["cholesterol_total"], "cholesterol_total_inconnu");
+  setupUnknownToggle(["cholesterol_hdl"], "cholesterol_hdl_inconnu");
+  setupUnknownToggle(["glycemie"], "glycemie_inconnue");
 }
 
 function numOrNull(id) {
   const el = document.getElementById(id);
+  if (!el) return null;
   const v = el.value;
   if (v === "" || v === null || v === undefined) return null;
   const f = Number(v);
@@ -139,6 +156,11 @@ function renderLoading(message = "Chargement...") {
 }
 
 function getPayload() {
+  const conso = document.getElementById("consommation_stimulants").value;
+  const alcoolExcessif = conso === "alcool" || conso === "les_deux" ? "oui" : "non";
+  const boissonsEnergisantes = conso === "boissons_energisantes" || conso === "les_deux" ? "oui" : "non";
+  const sommeil = document.getElementById("apnee_sommeil").value;
+
   const payload = {
     // Profil
     sexe: document.getElementById("sexe").value,
@@ -148,6 +170,9 @@ function getPayload() {
 
     // Hérédité
     antecedents_familiaux: document.getElementById("antecedents_familiaux").value,
+    bilan_cardiaque: document.getElementById("bilan_cardiaque").value,
+    consultation_cardiologue: document.getElementById("consultation_cardiologue").value,
+    activite_weekend: document.getElementById("activite_weekend").value,
 
     // Mode de vie
     heures_assis: document.getElementById("heures_assis").value,
@@ -159,26 +184,26 @@ function getPayload() {
     preparation_repas: document.getElementById("preparation_repas").value,
     charcuterie_fromage: document.getElementById("charcuterie_fromage").value,
     stress: document.getElementById("stress").value,
-    coleres: document.getElementById("coleres").value,
-    charge_familiale_seule: document.getElementById("charge_familiale_seule").value,
-    alcool_excessif: document.getElementById("alcool_excessif").value,
-    boissons_energisantes: document.getElementById("boissons_energisantes").value,
+    coleres: "jamais",
+    charge_familiale_seule: "non",
+    alcool_excessif: alcoolExcessif,
+    boissons_energisantes: boissonsEnergisantes,
 
     // Données médicales
     hypertension: document.getElementById("hypertension").value,
-    tension_systolique: numOrNull("tension_systolique"),
-    tension_diastolique: numOrNull("tension_diastolique"),
+    tension_systolique: document.getElementById("tension_inconnue")?.checked ? null : numOrNull("tension_systolique"),
+    tension_diastolique: document.getElementById("tension_inconnue")?.checked ? null : numOrNull("tension_diastolique"),
 
     cholesterol_eleve: document.getElementById("cholesterol_eleve").value,
-    cholesterol_total: numOrNull("cholesterol_total"),
+    cholesterol_total: document.getElementById("cholesterol_total_inconnu")?.checked ? null : numOrNull("cholesterol_total"),
     cholesterol_ldl: numOrNull("cholesterol_ldl"),
-    cholesterol_hdl: numOrNull("cholesterol_hdl"),
+    cholesterol_hdl: document.getElementById("cholesterol_hdl_inconnu")?.checked ? null : numOrNull("cholesterol_hdl"),
 
     diabete: document.getElementById("diabete").value,
-    glycemie: numOrNull("glycemie"),
+    glycemie: document.getElementById("glycemie_inconnue")?.checked ? null : numOrNull("glycemie"),
 
-    apnee_sommeil: document.getElementById("apnee_sommeil").value,
-    troubles_sommeil: document.getElementById("troubles_sommeil").value,
+    apnee_sommeil: sommeil,
+    troubles_sommeil: sommeil,
   };
   return payload;
 }
@@ -187,6 +212,103 @@ function renderResult(data) {
   const qual = data.qualitatif;
 
   const safe = (s) => String(s ?? "");
+  const scoreNorm = Number(qual.score_normalise || 0);
+  const gaugePct = Math.max(3, Math.min(97, scoreNorm));
+  const riskTone =
+    qual.couleur === "vert"
+      ? "ok"
+      : String(qual.couleur || "").includes("rouge")
+      ? "danger"
+      : "warn";
+  const detailsMap = Object.fromEntries((qual.details || []).map((d) => [String(d[0]), String(d[1])]));
+
+  const hasHighSedentarity = detailsMap["Sédentarité (temps assis)"] === ">7h";
+  const hasLowActivity = detailsMap["Activité physique"] === "<30min";
+  const hasAlcoholRisk = detailsMap["Alcool excessif"] === "oui";
+  const hasEnergyDrinkRisk = detailsMap["Boissons énergisantes"] === "oui";
+  const hasFoodRisk =
+    detailsMap["Fruits et légumes"] === "<2/sem" ||
+    detailsMap["Fruits et légumes"] === "2-5/sem" ||
+    detailsMap["Ajout de sel"] === "oui" ||
+    detailsMap["Préparation des repas"] === "industriel" ||
+    detailsMap["Charcuterie/Fromage régulier"] === "oui";
+  const hasDiabetesRisk = detailsMap["Diabète"] === "oui";
+  const hasHypertensionRisk = detailsMap["Hypertension"] === "oui";
+  const hasCholRisk = detailsMap["Cholestérol élevé"] === "oui";
+  const hasSleepRisk = detailsMap["Troubles du sommeil"] === "oui" || detailsMap["Apnée du sommeil"] === "oui";
+
+  const conseilsAdaptes = [];
+  if (hasLowActivity || hasHighSedentarity) {
+    conseilsAdaptes.push(`
+      <li>
+        <b>Activité physique et sédentarité</b><br />
+        Pratiquer 30 minutes d'activité physique quotidienne diminue d'environ un tiers le risque cardiovasculaire.
+        L'objectif est d'atteindre 150 minutes d'activité modérée ou 75 minutes d'activité soutenue par semaine, réparties sur plusieurs jours.
+        Évitez les longues périodes assises, surtout au-delà de 7 h/jour : levez-vous quelques minutes toutes les 2 heures.
+      </li>
+    `);
+  }
+  if (hasAlcoholRisk || hasEnergyDrinkRisk) {
+    conseilsAdaptes.push(`
+      <li>
+        <b>Alcool et boissons énergisantes</b><br />
+        L'excès d'alcool augmente le risque de maladies cardiovasculaires, neurologiques et de cancers.
+        Recommandation générale : ne pas dépasser 2 verres/jour, pas tous les jours, avec au moins 2 jours sans alcool par semaine.
+        Les boissons énergisantes peuvent majorer le risque de palpitations et d'hypertension : il est conseillé de les limiter fortement.
+      </li>
+    `);
+  }
+  if (hasFoodRisk) {
+    conseilsAdaptes.push(`
+      <li>
+        <b>Alimentation</b><br />
+        Une alimentation de type méditerranéen aide à réduire le risque cardiovasculaire :
+        plus de fruits/légumes, poissons, huiles végétales (olive), et moins de produits transformés.
+        Limitez le sel, la charcuterie, les fromages en excès et les plats préparés.
+      </li>
+    `);
+  }
+  if (hasDiabetesRisk) {
+    conseilsAdaptes.push(`
+      <li>
+        <b>Diabète</b><br />
+        Le diabète est un facteur majeur de risque cardiovasculaire. L'activité physique, la perte de poids si besoin
+        et le suivi médical régulier sont essentiels pour améliorer l'équilibre glycémique.
+      </li>
+    `);
+  }
+  if (hasHypertensionRisk) {
+    conseilsAdaptes.push(`
+      <li>
+        <b>Hypertension artérielle</b><br />
+        Une pression artérielle élevée augmente fortement le risque d'accident cardiaque et d'AVC.
+        Les mesures hygiéno-diététiques (poids, sel, alcool, activité physique) sont utiles, mais un traitement peut être nécessaire avec votre médecin.
+      </li>
+    `);
+  }
+  if (hasCholRisk) {
+    conseilsAdaptes.push(`
+      <li>
+        <b>Cholestérol</b><br />
+        Un cholestérol élevé contribue au risque d'athérosclérose. Un bilan lipidique régulier, une alimentation adaptée
+        et un suivi médical permettent de réduire ce risque.
+      </li>
+    `);
+  }
+  if (hasSleepRisk) {
+    conseilsAdaptes.push(`
+      <li>
+        <b>Troubles du sommeil</b><br />
+        Des troubles du sommeil persistants augmentent le risque cardiovasculaire.
+        Une meilleure hygiène de sommeil et, si besoin, une consultation spécialisée sont recommandées.
+      </li>
+    `);
+  }
+
+  const conseilsAdaptesHtml =
+    conseilsAdaptes.length > 0
+      ? `<ol class="reco-list">${conseilsAdaptes.join("")}</ol>`
+      : "<p>Aucun facteur majeur supplémentaire détecté sur ces thèmes. Continuez vos efforts de prévention.</p>";
 
   const score2Block = (() => {
     if (!data.score2) {
@@ -241,6 +363,41 @@ function renderResult(data) {
 
   resultEl.innerHTML = `
     <div class="results">
+      <div class="results-heading">VOS RÉSULTATS :</div>
+
+      <div class="risk-hero">
+        <p class="risk-hero-intro">
+          Ce test a pour objectif de sensibiliser l'utilisateur sur sa situation cardio-vasculaire et de le conseiller
+          avec des actions simples à réaliser pour agir, la consultation du médecin traitant ou du cardiologue doit être
+          privilégiée pour toutes les situations spécifiques.
+        </p>
+
+        <div class="risk-gauge-wrap">
+          <div class="risk-gauge">
+            <div class="risk-segment risk-segment-ok"></div>
+            <div class="risk-segment risk-segment-warn"></div>
+            <div class="risk-segment risk-segment-danger"></div>
+            <div class="risk-needle" style="left:${gaugePct}%"></div>
+          </div>
+        </div>
+
+        <div class="risk-hero-title">Votre risque d'un accident cardiovasculaire est :</div>
+        <div class="risk-hero-pill risk-${riskTone}">${safe(qual.categorie)}</div>
+
+        <div class="risk-hero-imc">
+          Votre indice de masse corporelle est de <b>${safe(qual.imc)}</b>. <b>${safe(qual.categorie_imc)}</b>
+        </div>
+        <p class="risk-hero-note">
+          Le surpoids et l'obésité favorisent plusieurs facteurs de risque cardiovasculaires comme l'hypertension artérielle,
+          le diabète, l'hypercholestérolémie. Il est important de maintenir si possible un poids normal tout au long de la vie
+          et, en cas de prise de poids, d'essayer de le réduire.
+        </p>
+
+        <button type="button" id="btnSimulerRisque" class="btn btn-secondary risk-hero-btn">
+          Simuler une diminution des risques
+        </button>
+      </div>
+
       ${
         (data.warnings || []).length
           ? `<div class="card">
@@ -276,9 +433,18 @@ function renderResult(data) {
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="card_recommandations">
         <div class="card-title">Recommandations prioritaires</div>
         <ol class="reco-list">${recos || "<li>Aucune recommandation.</li>"}</ol>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Conseils adaptés</div>
+        ${conseilsAdaptesHtml}
+        <p class="hint">
+          Conseil prévention : pour toute question médicale, contactez votre médecin ou votre cardiologue.
+          Ressources FFC : <a href="https://www.fedecardio.org/" target="_blank" rel="noopener noreferrer">Lien vers nos publications</a>.
+        </p>
       </div>
 
       ${
@@ -307,6 +473,14 @@ function renderResult(data) {
       </details>
     </div>
   `;
+
+  const btnSimuler = document.getElementById("btnSimulerRisque");
+  const cardRecos = document.getElementById("card_recommandations");
+  if (btnSimuler && cardRecos) {
+    btnSimuler.addEventListener("click", () => {
+      cardRecos.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 }
 
 async function calcAndRender() {
@@ -386,8 +560,8 @@ document.getElementById("btnEmail").addEventListener("click", async () => {
 
     const payload = getPayload();
     payload.email_to = emailTo;
-    payload.email_subject = "Votre rapport cardiovasculaire";
-    payload.email_body = "Bonjour,\n\nVeuillez trouver ci-joint votre rapport d'évaluation cardiovasculaire.\n\nCordialement.";
+    payload.email_subject = "Vos resultats cardiovasculaires (rapport PDF joint)";
+    payload.email_body = "";
 
     const res = await fetch("/api/email", {
       method: "POST",
@@ -418,6 +592,9 @@ const demoHigh = {
   poids: 85,
   taille: 178,
   antecedents_familiaux: "oui",
+  bilan_cardiaque: "non",
+  consultation_cardiologue: "non",
+  activite_weekend: "television",
   heures_assis: ">7h",
   activite_physique: "<30min",
   tabac: "oui",
@@ -450,6 +627,9 @@ const demoHealthy = {
   poids: 60,
   taille: 165,
   antecedents_familiaux: "non",
+  bilan_cardiaque: "oui",
+  consultation_cardiologue: "oui",
+  activite_weekend: "sport",
   heures_assis: "<3h",
   activite_physique: ">30min",
   tabac: "non",
@@ -477,11 +657,23 @@ const demoHealthy = {
 };
 
 function loadDemo(d) {
+  const conso =
+    d.alcool_excessif === "oui" && d.boissons_energisantes === "oui"
+      ? "les_deux"
+      : d.alcool_excessif === "oui"
+      ? "alcool"
+      : d.boissons_energisantes === "oui"
+      ? "boissons_energisantes"
+      : "aucun";
+
   setIfExists("sexe", d.sexe);
   setIfExists("age", d.age);
   setIfExists("poids", d.poids);
   setIfExists("taille", d.taille);
   setIfExists("antecedents_familiaux", d.antecedents_familiaux);
+  setIfExists("bilan_cardiaque", d.bilan_cardiaque);
+  setIfExists("consultation_cardiologue", d.consultation_cardiologue);
+  setIfExists("activite_weekend", d.activite_weekend);
   setIfExists("heures_assis", d.heures_assis);
   setIfExists("activite_physique", d.activite_physique);
   setIfExists("tabac", d.tabac);
@@ -493,8 +685,7 @@ function loadDemo(d) {
   setIfExists("stress", d.stress);
   setIfExists("coleres", d.coleres);
   setIfExists("charge_familiale_seule", d.charge_familiale_seule);
-  setIfExists("alcool_excessif", d.alcool_excessif);
-  setIfExists("boissons_energisantes", d.boissons_energisantes);
+  setIfExists("consommation_stimulants", conso);
   setIfExists("hypertension", d.hypertension);
   setIfExists("tension_systolique", d.tension_systolique);
   setIfExists("tension_diastolique", d.tension_diastolique);
@@ -506,6 +697,17 @@ function loadDemo(d) {
   setIfExists("glycemie", d.glycemie);
   setIfExists("apnee_sommeil", d.apnee_sommeil);
   setIfExists("troubles_sommeil", d.troubles_sommeil);
+
+  const setUnknown = (id, isUnknown) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.checked = !!isUnknown;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  setUnknown("tension_inconnue", d.tension_systolique == null && d.tension_diastolique == null);
+  setUnknown("cholesterol_total_inconnu", d.cholesterol_total == null);
+  setUnknown("cholesterol_hdl_inconnu", d.cholesterol_hdl == null);
+  setUnknown("glycemie_inconnue", d.glycemie == null);
 }
 
 document.getElementById("btnDemoHigh").addEventListener("click", () => loadDemo(demoHigh));
@@ -513,10 +715,8 @@ document.getElementById("btnDemoHealthy").addEventListener("click", () => loadDe
 
 transformSelectsToRadios();
 const tabs = setupTabs();
-setupAnswerModeToggle();
-
-// Valeurs par défaut = démo haut risque
-loadDemo(demoHigh);
+setupUnknownToggles();
+clearFormOnLoad();
 
 // Enregistrement du Service Worker pour mode PWA
 if ("serviceWorker" in navigator) {

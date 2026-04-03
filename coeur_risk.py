@@ -34,6 +34,9 @@ class PatientData:
 
     # Hérédité
     antecedents_familiaux: str = ""  # "oui", "non", "ne_sais_pas"
+    bilan_cardiaque: str = "non"     # "oui", "non"
+    consultation_cardiologue: str = "non"  # "oui", "non"
+    activite_weekend: str = "promenade"  # "television", "promenade", "jeux_videos", "sport"
 
     # Mode de vie
     heures_assis: str = ""          # "<3h", "3-7h", ">7h"
@@ -768,7 +771,7 @@ def poser_nombre(question: str, min_val: float = 0, max_val: float = 999,
 
 
 def questionnaire_interactif() -> PatientData:
-    """Questionnaire interactif complet – 22 questions."""
+    """Questionnaire interactif complet – 25 questions."""
     patient = PatientData()
 
     print("\n" + "=" * 70)
@@ -800,10 +803,30 @@ def questionnaire_interactif() -> PatientData:
         {"oui": "Oui", "non": "Non", "ne_sais_pas": "Je ne sais pas"}
     )
 
+    patient.bilan_cardiaque = poser_question(
+        "Avez-vous déjà effectué un bilan cardiaque ?",
+        {"oui": "Oui", "non": "Non"}
+    )
+
+    patient.consultation_cardiologue = poser_question(
+        "Avez-vous déjà consulté un cardiologue ?",
+        {"oui": "Oui", "non": "Non"}
+    )
+
     # ── PARTIE 3 : MODE DE VIE ──
     print("\n" + "─" * 40)
     print("  PARTIE 3 : MODE DE VIE")
     print("─" * 40)
+
+    patient.activite_weekend = poser_question(
+        "Parmi les activités suivantes, laquelle pratiqueriez-vous le plus facilement pendant vos weekends ?",
+        {
+            "television": "Regarder la télévision",
+            "promenade": "Vous promener",
+            "jeux_videos": "Jouer à des jeux vidéos",
+            "sport": "Faire du sport",
+        }
+    )
 
     patient.heures_assis = poser_question(
         "Combien d'heures par jour passez-vous assis(e) ?",
@@ -965,23 +988,25 @@ class RapportPDF(FPDF):
 
     def __init__(self):
         super().__init__()
-        self.set_auto_page_break(auto=True, margin=20)
+        self.set_margins(12, 12, 12)
+        self.set_auto_page_break(auto=True, margin=18)
 
     def header(self):
-        self.set_font("Helvetica", "B", 10)
-        self.set_text_color(150, 150, 150)
-        self.cell(0, 8, "Comment va votre coeur ? - \xc9valuation Cardiovasculaire", align="C")
-        self.ln(3)
-        self.set_draw_color(200, 200, 200)
-        self.line(10, self.get_y(), 200, self.get_y())
-        self.ln(5)
+        self.set_font("Helvetica", "B", 9)
+        self.set_text_color(130, 130, 130)
+        self.cell(0, 6, "Comment va votre coeur ? - Evaluation cardiovasculaire", align="C")
+        self.ln(2)
+        self.set_draw_color(225, 225, 225)
+        self.line(12, self.get_y(), 198, self.get_y())
+        self.ln(4)
 
     def footer(self):
-        self.set_y(-15)
+        self.set_y(-14)
         self.set_font("Helvetica", "I", 8)
-        self.set_text_color(150, 150, 150)
-        self.cell(0, 10, f"Page {self.page_no()}/{{nb}} | "
-                  f"G\xe9n\xe9r\xe9 le {datetime.now().strftime('%d/%m/%Y \xe0 %H:%M')} | "
+        self.set_text_color(135, 135, 135)
+        date_generation = datetime.now().strftime("%d/%m/%Y a %H:%M")
+        self.cell(0, 8, f"Page {self.page_no()}/{{nb}} | "
+                  f"G\xe9n\xe9r\xe9 le {date_generation} | "
                   "Algorithme SCORE2 (ESC 2021) & mod\xe8le qualitatif", align="C")
 
     def titre_principal(self):
@@ -1027,10 +1052,76 @@ class RapportPDF(FPDF):
             align="C")
         self.ln(8)
 
+    def section_resume_executif(self, resultats: dict):
+        """Ajoute une synthese rapide lisible en 1 minute."""
+        qual = resultats["qualitatif"]
+        score2 = resultats.get("score2")
+
+        self.set_font("Helvetica", "B", 16)
+        self.set_text_color(*self.COULEURS["bleu"])
+        self.cell(0, 10, "1. SYNTHESE RAPIDE", ln=True)
+        self.ln(2)
+
+        # Cartouche principal
+        couleur = self.COULEURS.get(qual.get("couleur", "gris"), self.COULEURS["gris"])
+        y = self.get_y()
+        self.set_fill_color(*couleur)
+        self.rect(20, y, 170, 24, "F")
+        self.set_text_color(255, 255, 255)
+        self.set_font("Helvetica", "B", 15)
+        self.set_xy(20, y + 2)
+        self.cell(170, 8, f"Risque global : {qual['categorie']}", align="C")
+        self.set_font("Helvetica", "", 11)
+        self.set_xy(20, y + 12)
+        self.cell(170, 8, f"IMC : {qual['imc']} ({qual['categorie_imc']})", align="C")
+        self.set_y(y + 28)
+
+        self.set_text_color(80, 80, 80)
+        self.set_font("Helvetica", "", 10)
+        if score2:
+            self.multi_cell(
+                0,
+                5,
+                f"SCORE2 ({score2['mode']}) : {score2['risque_pct']}% a 10 ans ({score2['categorie']}).",
+            )
+        else:
+            self.multi_cell(
+                0,
+                5,
+                "SCORE2 non calcule (donnees medicales insuffisantes). Le score qualitatif reste interpretable.",
+            )
+        self.ln(2)
+
+        self.set_font("Helvetica", "B", 11)
+        self.set_text_color(33, 37, 41)
+        self.cell(0, 7, "Top 3 actions prioritaires :", ln=True)
+        self.ln(1)
+
+        self.set_font("Helvetica", "", 10)
+        recos = resultats["qualitatif"].get("recommandations", [])
+        for i, reco in enumerate(recos[:3], 1):
+            self.cell(5)
+            self.multi_cell(185, 5, f"{i}. {reco}")
+
+        if not recos:
+            self.cell(5)
+            self.multi_cell(185, 5, "1. Continuez ainsi : votre profil actuel est favorable.")
+
+        self.ln(4)
+        self.set_font("Helvetica", "I", 8)
+        self.set_text_color(120, 120, 120)
+        self.multi_cell(
+            0,
+            4,
+            "Document de prevention : il ne remplace pas un avis medical. "
+            "En cas de symptomes, consultez votre medecin traitant ou un cardiologue.",
+        )
+        self.ln(4)
+
     def section_profil(self, patient: PatientData, imc: float, cat_imc: str):
         self.set_font("Helvetica", "B", 16)
         self.set_text_color(*self.COULEURS["bleu"])
-        self.cell(0, 10, "1. PROFIL DU PATIENT", ln=True)
+        self.cell(0, 10, "2. PROFIL DU PATIENT", ln=True)
         self.ln(3)
 
         # Tableau profil
@@ -1062,16 +1153,16 @@ class RapportPDF(FPDF):
                 self.set_fill_color(255, 255, 255)
             self.set_text_color(80, 80, 80)
             self.set_font("Helvetica", "B", 10)
-            self.cell(70, 8, f"  {label}", fill=True)
+            self.cell(70, 9, f"  {label}", fill=True)
             self.set_font("Helvetica", "", 10)
             self.set_text_color(33, 37, 41)
-            self.cell(120, 8, f"  {valeur}", fill=True, ln=True)
+            self.cell(120, 9, f"  {valeur}", fill=True, ln=True)
         self.ln(8)
 
     def section_score2(self, resultat: dict):
         self.set_font("Helvetica", "B", 16)
         self.set_text_color(*self.COULEURS["bleu"])
-        self.cell(0, 10, f"2. RISQUE SCORE2 ({resultat['mode']})", ln=True)
+        self.cell(0, 10, f"3. RISQUE SCORE2 ({resultat['mode']})", ln=True)
         self.ln(3)
 
         self.set_font("Helvetica", "", 10)
@@ -1142,7 +1233,7 @@ class RapportPDF(FPDF):
         self.ln(8)
 
     def section_qualitatif(self, resultat: dict, has_score2: bool):
-        num = "3" if has_score2 else "2"
+        num = "4" if has_score2 else "3"
         self.set_font("Helvetica", "B", 16)
         self.set_text_color(*self.COULEURS["bleu"])
         self.cell(0, 10, f"{num}. \xc9VALUATION QUALITATIVE MULTI-FACTEURS", ln=True)
@@ -1180,15 +1271,15 @@ class RapportPDF(FPDF):
         self.cell(0, 8, "D\xe9tail par facteur de risque :", ln=True)
         self.ln(2)
 
-        self.set_font("Helvetica", "B", 8)
+        self.set_font("Helvetica", "B", 8.5)
         self.set_fill_color(41, 98, 255)
         self.set_text_color(255, 255, 255)
-        self.cell(60, 7, "  FACTEUR", fill=True)
-        self.cell(50, 7, "  VALEUR", fill=True)
-        self.cell(30, 7, "  POINTS", fill=True, align="C")
-        self.cell(50, 7, "  JAUGE", fill=True, ln=True)
+        self.cell(58, 8, "  FACTEUR", fill=True)
+        self.cell(52, 8, "  VALEUR", fill=True)
+        self.cell(28, 8, "  POINTS", fill=True, align="C")
+        self.cell(52, 8, "  JAUGE", fill=True, ln=True)
 
-        self.set_font("Helvetica", "", 8)
+        self.set_font("Helvetica", "", 8.5)
         for i, (facteur, valeur, pts, pts_max) in enumerate(resultat["details"]):
             if i % 2 == 0:
                 self.set_fill_color(*self.COULEURS["gris_clair"])
@@ -1196,22 +1287,22 @@ class RapportPDF(FPDF):
                 self.set_fill_color(255, 255, 255)
 
             self.set_text_color(60, 60, 60)
-            self.cell(60, 7, f"  {facteur}", fill=True)
+            self.cell(58, 8, f"  {facteur}", fill=True)
 
             val_str = str(valeur)
-            if len(val_str) > 28:
-                val_str = val_str[:25] + "..."
-            self.cell(50, 7, f"  {val_str}", fill=True)
+            if len(val_str) > 32:
+                val_str = val_str[:29] + "..."
+            self.cell(52, 8, f"  {val_str}", fill=True)
 
             self.set_text_color(33, 37, 41)
-            self.set_font("Helvetica", "B", 8)
-            self.cell(30, 7, f"{pts}/{pts_max}", fill=True, align="C")
+            self.set_font("Helvetica", "B", 8.5)
+            self.cell(28, 8, f"{pts}/{pts_max}", fill=True, align="C")
 
             # Mini jauge
-            self.set_font("Helvetica", "", 8)
-            gauge_y = self.get_y() + 2
+            self.set_font("Helvetica", "", 8.5)
+            gauge_y = self.get_y() + 2.5
             gauge_x = self.get_x() + 2
-            gauge_w = 46
+            gauge_w = 48
             gauge_h = 3
 
             self.set_fill_color(230, 230, 230)
@@ -1228,7 +1319,7 @@ class RapportPDF(FPDF):
                 self.set_fill_color(*gc)
                 self.rect(gauge_x, gauge_y, gauge_w * ratio, gauge_h, "F")
 
-            self.cell(50, 7, "", fill=False, ln=True)
+            self.cell(52, 8, "", fill=False, ln=True)
 
         self.ln(5)
 
@@ -1253,51 +1344,38 @@ class RapportPDF(FPDF):
         self.set_font("Helvetica", "B", 16)
         self.set_text_color(*self.COULEURS["bleu"])
         self.cell(0, 10, f"{num}. RECOMMANDATIONS PERSONNALIS\xc9ES", ln=True)
-        self.ln(5)
+        self.ln(3)
 
         self.set_font("Helvetica", "", 10)
         self.set_text_color(80, 80, 80)
         self.multi_cell(0, 5,
             "Voici les actions prioritaires pour am\xe9liorer votre sant\xe9 cardiovasculaire, "
             "class\xe9es par ordre d'impact :")
-        self.ln(5)
+        self.ln(4)
 
-        priorite_mots_cles = ["FUMER", "tabag", "Hypertension severe",
-                              "Diabete mal", "Cholesterol tres", "obesite"]
+        if not recommandations:
+            recommandations = ["Continuez ainsi : votre mode de vie est favorable a votre sante cardiovasculaire."]
 
         for i, reco in enumerate(recommandations, 1):
-            # Déterminer la priorité
-            is_urgent = any(mot.lower() in reco.lower() for mot in priorite_mots_cles)
-
             y = self.get_y()
-            if y > 260:
+            lines = self._count_lines(reco, 162)
+            box_h = max(14, 8 + lines * 5)
+            if y + box_h > 270:
                 self.add_page()
                 y = self.get_y()
 
-            if is_urgent:
-                self.set_fill_color(255, 235, 238)
-                self.set_draw_color(220, 53, 69)
-            else:
-                self.set_fill_color(232, 245, 233)
-                self.set_draw_color(46, 139, 87)
+            self.set_fill_color(246, 248, 252)
+            self.set_draw_color(210, 220, 235)
+            self.rect(14, y, 182, box_h, "DF")
 
-            # Encadré recommandation
-            lines = self._count_lines(reco, 160)
-            box_h = max(12, 6 + lines * 5)
-            self.rect(15, y, 180, box_h, "DF")
-
-            self.set_xy(20, y + 2)
+            self.set_xy(18, y + 3)
             self.set_font("Helvetica", "B", 10)
-            if is_urgent:
-                self.set_text_color(220, 53, 69)
-                self.cell(8, 5, f"!!")
-            else:
-                self.set_text_color(46, 139, 87)
-                self.cell(8, 5, f"{i}.")
+            self.set_text_color(*self.COULEURS["bleu"])
+            self.cell(10, 5, f"{i}.")
 
-            self.set_font("Helvetica", "", 9)
-            self.set_text_color(33, 37, 41)
-            self.multi_cell(160, 5, reco)
+            self.set_font("Helvetica", "", 9.5)
+            self.set_text_color(40, 40, 40)
+            self.multi_cell(166, 5, reco)
             self.set_y(y + box_h + 3)
 
         self.ln(5)
@@ -1516,6 +1594,9 @@ def generer_pdf(patient: PatientData, resultats: dict, filename: str = "rapport_
     qual = resultats["qualitatif"]
     has_score2 = "score2" in resultats
 
+    # Synthese rapide
+    pdf.section_resume_executif(resultats)
+
     # Profil patient
     pdf.section_profil(patient, qual["imc"], qual["categorie_imc"])
 
@@ -1530,11 +1611,11 @@ def generer_pdf(patient: PatientData, resultats: dict, filename: str = "rapport_
     pdf.section_facteurs_positifs(qual["facteurs_positifs"])
 
     # Recommandations
-    num_reco = "4" if has_score2 else "3"
+    num_reco = "5" if has_score2 else "4"
     pdf.section_recommandations(qual["recommandations"], num_reco)
 
     # Méthodologie
-    num_methodo = "5" if has_score2 else "4"
+    num_methodo = "6" if has_score2 else "5"
     pdf.section_methodologie(num_methodo)
 
     pdf.output(filename)

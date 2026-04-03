@@ -30,13 +30,6 @@
       <section class="panel tab-panel is-active" id="tab_questionnaire">
         <div class="panel-head">
           <h2>Patient</h2>
-          <div class="view-toggle">
-            <label class="toggle">
-              <input type="checkbox" id="toggleAnswerMode" />
-              <span class="toggle-ui"></span>
-              <span class="toggle-text">Réponses en menus déroulants</span>
-            </label>
-          </div>
           <div class="demo-actions">
             <button type="button" id="btnDemoHigh" class="btn btn-secondary">Démo : haut risque</button>
             <button type="button" id="btnDemoHealthy" class="btn btn-secondary">Démo : sain</button>
@@ -58,17 +51,17 @@
 
             <label class="field">
               <span>2. Quel âge avez-vous ?</span>
-              <input id="age" type="number" min="0" max="120" step="1" required />
+              <input id="age" type="number" min="0" max="120" step="1" value="0" required />
             </label>
 
             <label class="field">
               <span>3. Quel est votre poids en kilogrammes ?</span>
-              <input id="poids" type="number" min="0" step="0.1" required />
+              <input id="poids" type="number" min="0" step="0.1" value="0" required />
             </label>
 
             <label class="field">
               <span>4. Quel est votre taille en centimètres ?</span>
-              <input id="taille" type="number" min="0" step="0.1" required />
+              <input id="taille" type="number" min="0" step="0.1" value="0" required />
             </label>
             </div>
           </details>
@@ -88,14 +81,44 @@
                 <option value="ne_sais_pas">Je ne sais pas</option>
               </select>
             </label>
+
             </div>
           </details>
 
           <details class="accordion section" open>
             <summary class="accordion-summary"><span class="accordion-title">Mes facteurs de risque liés à mon mode de vie</span></summary>
             <div class="accordion-body">
+            <div class="subcat-title">Mon activité physique et ma sédentarité</div>
             <label class="field">
-              <span>6. Êtes-vous assis…</span>
+              <span>6. Avez-vous déjà effectué un bilan cardiaque ?</span>
+              <select id="bilan_cardiaque" required>
+                <option value="non">Non</option>
+                <option value="oui">Oui</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>7. Avez-vous déjà consulté un cardiologue ?</span>
+              <select id="consultation_cardiologue" required>
+                <option value="non">Non</option>
+                <option value="oui">Oui</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>
+                8. Parmi les activités suivantes, laquelle pratiqueriez-vous le plus facilement pendant vos weekends ?
+              </span>
+              <select id="activite_weekend" required>
+                <option value="television">Regarder la télévision</option>
+                <option value="promenade">Vous promener</option>
+                <option value="jeux_videos">Jouer à des jeux vidéos</option>
+                <option value="sport">Faire du sport</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>9. Êtes-vous assis…</span>
               <select id="heures_assis" required>
                 <option value="<3h">Moins de 3 heures par jour</option>
                 <option value="3-7h">Entre 3 et 7 heures par jour</option>
@@ -104,7 +127,7 @@
             </label>
 
             <label class="field">
-              <span>7. Faites-vous une activité physique par jour…</span>
+              <span>10. Faites-vous une activité physique par jour…</span>
               <select id="activite_physique" required>
                 <option value="<30min">Moins de 30 minutes par jour</option>
                 <option value="~30min">Environ 30 minutes par jour</option>
@@ -112,8 +135,9 @@
               </select>
             </label>
 
+            <div class="subcat-title">Tabagisme</div>
             <label class="field">
-              <span>8. Fumez-vous ?</span>
+              <span>11. Fumez-vous ?</span>
               <select id="tabac" required>
                 <option value="oui">Oui</option>
                 <option value="ancien_5ans">Non, arrêté depuis moins de 5 ans</option>
@@ -129,8 +153,9 @@
               </select>
             </label>
 
+            <div class="subcat-title">Alimentation</div>
             <label class="field span-2">
-              <span>9. Mangez-vous des fruits et légumes tous les jours ?</span>
+              <span>12. Mangez-vous des fruits et légumes tous les jours ?</span>
               <select id="fruits_legumes" required>
                 <option value="<2/sem">Moins de 2 fruits et 2 légumes par semaine</option>
                 <option value="2-5/sem">Entre 2 et 5 fruits et légumes de 2 à 5 jours par semaine</option>
@@ -140,7 +165,7 @@
             </label>
 
             <label class="field">
-              <span>10. Resalez-vous vos plats ?</span>
+              <span>13. Resalez-vous vos plats ?</span>
               <select id="ajout_sel" required>
                 <option value="non">Non</option>
                 <option value="oui">Oui</option>
@@ -148,7 +173,7 @@
             </label>
 
             <label class="field">
-              <span>11. À votre domicile, vous mangez le plus souvent…</span>
+              <span>14. À votre domicile, vous mangez le plus souvent…</span>
               <select id="preparation_repas" required>
                 <option value="industriel">Des plats préparés du commerce</option>
                 <option value="maison">Des plats cuisinés à la maison</option>
@@ -157,15 +182,16 @@
             </label>
 
             <label class="field">
-              <span>12. Mangez-vous régulièrement de la charcuterie et du fromage ?</span>
+              <span>15. Mangez-vous régulièrement de la charcuterie et du fromage ?</span>
               <select id="charcuterie_fromage" required>
                 <option value="non">Non</option>
                 <option value="oui">Oui</option>
               </select>
             </label>
 
+            <div class="subcat-title">Ma gestion du stress</div>
             <label class="field">
-              <span>13. Êtes-vous stressé ?</span>
+              <span>16. Êtes-vous stressé ?</span>
               <select id="stress" required>
                 <option value="jamais">Je ne suis jamais stressé</option>
                 <option value="occasionnel">Je suis stressé de temps en temps</option>
@@ -173,37 +199,14 @@
               </select>
             </label>
 
-            <label class="field">
-              <span>Êtes-vous sujet à des colères ?</span>
-              <select id="coleres" required>
-                <option value="jamais">Jamais</option>
-                <option value="peu">Peu</option>
-                <option value="frequent">Frequent</option>
-                <option value="tres_frequent">Très fréquent</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span>Gérez-vous seul(e) votre environnement familial ?</span>
-              <select id="charge_familiale_seule" required>
-                <option value="non">Non</option>
-                <option value="oui">Oui</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span>14. Buvez-vous plus de deux verres par jour, et cela plus de 5 jours par semaine ?</span>
-              <select id="alcool_excessif" required>
-                <option value="non">Non</option>
-                <option value="oui">Oui</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span>Boissons énergisantes</span>
-              <select id="boissons_energisantes" required>
-                <option value="non">Non</option>
-                <option value="oui">Oui</option>
+            <div class="subcat-title">Ma consommation d'alcool et boisson energissante</div>
+            <label class="field span-2">
+              <span>17. Buvez-vous plus de deux verres d'alcool par jour (plus de 5 jours par semaine) et/ou des boissons énergisantes ?</span>
+              <select id="consommation_stimulants" required>
+                <option value="aucun">Non, aucun des deux</option>
+                <option value="alcool">Oui, alcool uniquement</option>
+                <option value="boissons_energisantes">Oui, boissons énergisantes uniquement</option>
+                <option value="les_deux">Oui, les deux</option>
               </select>
             </label>
             </div>
@@ -212,8 +215,9 @@
           <details class="accordion section" open>
             <summary class="accordion-summary"><span class="accordion-title">Les autres facteurs de risque</span></summary>
             <div class="accordion-body">
+            <div class="subcat-title">Hypertension</div>
             <label class="field">
-              <span>15. Avez-vous de l'hypertension ?</span>
+              <span>18. Avez-vous de l'hypertension ?</span>
               <select id="hypertension" required>
                 <option value="non">Non</option>
                 <option value="oui">Oui</option>
@@ -221,17 +225,22 @@
             </label>
 
             <label class="field">
-              <span>16. Connaissez-vous votre pression artérielle ? (Systolique, mmHg) [optionnel]</span>
-              <input id="tension_systolique" type="number" min="0" step="1" placeholder="ex: 148" />
+              <span>19. Connaissez-vous votre pression artérielle ? (Systolique, mmHg)</span>
+              <div class="inline-number-unknown">
+                <span class="mini-label">Oui, elle est de</span>
+                <input id="tension_systolique" type="number" min="0" step="1" value="0" placeholder="ex: 148" />
+                <span class="mini-label">mmHg</span>
+              </div>
+              <label class="checkbox-inline">
+                <input id="tension_inconnue" type="checkbox" />
+                <span>Si non, cochez cette case</span>
+              </label>
             </label>
 
-            <label class="field">
-              <span>Diastolique (mmHg) [optionnel]</span>
-              <input id="tension_diastolique" type="number" min="0" step="1" placeholder="ex: 92" />
-            </label>
 
+            <div class="subcat-title">Cholestérol</div>
             <label class="field span-2">
-              <span>17. Avez-vous un taux de cholestérol élevé ?</span>
+              <span>20. Avez-vous un taux de cholestérol élevé ?</span>
               <select id="cholesterol_eleve" required>
                 <option value="non">Non</option>
                 <option value="oui">Oui</option>
@@ -239,22 +248,34 @@
             </label>
 
             <label class="field">
-              <span>18. Connaissez-vous votre taux de cholestérol ? (Cholestérol total, mmol/L) [optionnel]</span>
-              <input id="cholesterol_total" type="number" min="0" step="0.1" placeholder="ex: 6.8" />
+              <span>21. Connaissez-vous votre taux de cholestérol ?</span>
+              <div class="inline-number-unknown">
+                <span class="mini-label">Cholestérol total</span>
+                <input id="cholesterol_total" type="number" min="0" step="0.1" value="0" placeholder="ex: 6.8" />
+                <span class="mini-label">mmol/L</span>
+              </div>
+              <label class="checkbox-inline">
+                <input id="cholesterol_total_inconnu" type="checkbox" />
+                <span>Si non, cochez cette case</span>
+              </label>
             </label>
 
             <label class="field">
-              <span>LDL (mmol/L) [non utilisé SCORE2]</span>
-              <input id="cholesterol_ldl" type="number" min="0" step="0.1" placeholder="ex: 4.2" />
+              <span>22. Connaissez-vous votre taux de cholestérol HDL ?</span>
+              <div class="inline-number-unknown">
+                <span class="mini-label">Oui, il est de</span>
+                <input id="cholesterol_hdl" type="number" min="0" step="0.1" value="0" placeholder="ex: 1.1" />
+                <span class="mini-label">mmol/L</span>
+              </div>
+              <label class="checkbox-inline">
+                <input id="cholesterol_hdl_inconnu" type="checkbox" />
+                <span>Si non, cochez cette case</span>
+              </label>
             </label>
 
-            <label class="field">
-              <span>19. Connaissez-vous votre taux de cholestérol HDL ? (mmol/L) [optionnel]</span>
-              <input id="cholesterol_hdl" type="number" min="0" step="0.1" placeholder="ex: 1.1" />
-            </label>
-
+            <div class="subcat-title">Diabète</div>
             <label class="field span-2">
-              <span>20. Êtes-vous diabétique ?</span>
+              <span>23. Êtes-vous diabétique ?</span>
               <select id="diabete" required>
                 <option value="non">Non</option>
                 <option value="oui">Oui</option>
@@ -262,21 +283,22 @@
             </label>
 
             <label class="field">
-              <span>21. Connaissez-vous votre glycémie ? (g/L) [optionnel]</span>
-              <input id="glycemie" type="number" min="0" step="0.01" placeholder="ex: 1.05" />
+              <span>24. Connaissez-vous votre glycémie ? (g/L)</span>
+              <div class="inline-number-unknown">
+                <span class="mini-label">Oui, il est de</span>
+                <input id="glycemie" type="number" min="0" step="0.01" value="0" placeholder="ex: 1.05" />
+                <span class="mini-label">g/L</span>
+              </div>
+              <label class="checkbox-inline">
+                <input id="glycemie_inconnue" type="checkbox" />
+                <span>Si non, cochez cette case</span>
+              </label>
             </label>
 
+            <div class="subcat-title">Mes troubles du sommeil</div>
             <label class="field">
-              <span>22. Faites-vous de l'apnée du sommeil ?</span>
+              <span>25. Êtes-vous sujet à des troubles du sommeil ?</span>
               <select id="apnee_sommeil" required>
-                <option value="non">Non</option>
-                <option value="oui">Oui</option>
-              </select>
-            </label>
-
-            <label class="field span-2">
-              <span>Êtes-vous sujet à des troubles du sommeil ?</span>
-              <select id="troubles_sommeil" required>
                 <option value="non">Non</option>
                 <option value="oui">Oui</option>
               </select>
@@ -291,7 +313,7 @@
           </div>
 
           <details class="accordion section">
-            <summary class="accordion-summary"><span class="accordion-title">Envoi email [optionnel]</span></summary>
+            <summary class="accordion-summary"><span class="accordion-title">Envoi email</span></summary>
             <div class="accordion-body">
             <label class="field">
               <span>Email destinataire</span>
