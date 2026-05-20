@@ -374,6 +374,17 @@ def index() -> FileResponse:
     return FileResponse(str(INDEX_FILE))
 
 
+@app.get("/sw.js")
+def service_worker() -> FileResponse:
+    """Sert le Service Worker depuis la racine avec le scope '/' autorisé."""
+    sw_file = STATIC_DIR / "sw.js"
+    return FileResponse(
+        str(sw_file),
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/"},
+    )
+
+
 @app.get("/api/health")
 def health() -> JSONResponse:
     return JSONResponse(content={"ok": True, "service": "coeurdurisk"})

@@ -26,6 +26,17 @@ body {
   padding: 0 16px 30px;
 }
 
+.offline-banner {
+  background: #7a4800;
+  color: #fff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
 .header h1 {
   margin: 0 0 8px;
   font-size: 26px;
@@ -308,16 +319,34 @@ input::placeholder {
   cursor: not-allowed;
 }
 
+#btnPdf,
+#btnEmail {
+  background: var(--danger);
+  color: #fff;
+}
+
+#btnPdf:hover,
+#btnEmail:hover {
+  background: #a82e2e;
+}
+
+#btnPdf:disabled,
+#btnEmail:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .btn:active {
   transform: translateY(1px);
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: var(--danger);
+  color: #fff;
 }
 
 .btn-primary:hover {
-  background: #5f2f95;
+  background: #a82e2e;
 }
 
 .btn-secondary {
@@ -373,7 +402,7 @@ input::placeholder {
   width: min(540px, 100%);
   height: 30px;
   border-radius: 999px;
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid rgba(255, 255, 255, 0.75);
   background: rgba(255, 255, 255, 0.15);
 }
@@ -385,6 +414,7 @@ input::placeholder {
 .risk-segment-ok {
   width: 24%;
   background: #2cac43;
+  border-radius: 999px 0 0 999px;
 }
 
 .risk-segment-warn {
@@ -395,30 +425,37 @@ input::placeholder {
 .risk-segment-danger {
   width: 59%;
   background: #dc3545;
+  border-radius: 0 999px 999px 0;
 }
 
 .risk-needle {
   position: absolute;
-  top: -10px;
+  top: -14px;
+  width: 4px;
+  height: calc(100% + 14px);
+  background: #111;
+  transform: translateX(-50%);
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9);
+  z-index: 2;
+}
+
+.risk-needle::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 16px solid #ffffff;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 9px solid #111;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.8));
 }
 
 .risk-needle::after {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: -2px;
-  width: 3px;
-  height: 30px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  display: none;
 }
 
 .risk-hero-title {
@@ -880,14 +917,8 @@ select.is-hidden {
   }
 
   .risk-needle {
-    top: -8px;
-    border-left-width: 8px;
-    border-right-width: 8px;
-    border-top-width: 14px;
-  }
-
-  .risk-needle::after {
-    height: 26px;
+    top: -12px;
+    height: calc(100% + 12px);
   }
 
   .risk-hero-title {

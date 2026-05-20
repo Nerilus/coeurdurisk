@@ -489,18 +489,24 @@ async function calcAndRender() {
   renderLoading("Calcul des résultats en cours...");
   try {
     const payload = getPayload();
-    const res = await fetch("/api/calc", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const msg = await res.text();
-      throw new Error(msg || `Erreur HTTP ${res.status}`);
+    let data;
+    if (!navigator.onLine) {
+      // Mode offline : calcul local via score2.js (aucune requête réseau)
+      data = evaluerRisque(payload);
+    } else {
+      const res = await fetch("/api/calc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || `Erreur HTTP ${res.status}`);
+      }
+      data = await res.json();
     }
-    const data = await res.json();
     renderResult(data);
-    // Affiche automatiquement l’onglet résultats après calcul
+    // Affiche automatiquement l'onglet résultats après calcul
     const tabBtn = document.querySelector('.tab[data-tab="resultats"]');
     if (tabBtn) tabBtn.click();
   } catch (e) {
@@ -718,11 +724,35 @@ const tabs = setupTabs();
 setupUnknownToggles();
 clearFormOnLoad();
 
+// ── Gestion du mode offline ──────────────────────────────────────────────────
+
+function updateOfflineUI() {
+  const banner   = document.getElementById("offlineBanner");
+  const btnPdf   = document.getElementById("btnPdf");
+  const btnEmail = document.getElementById("btnEmail");
+  const offline  = !navigator.onLine;
+
+  if (banner) banner.hidden = !offline;
+
+  if (btnPdf) {
+    btnPdf.disabled = offline;
+    btnPdf.title    = offline ? "Non disponible hors ligne" : "";
+  }
+  if (btnEmail) {
+    btnEmail.disabled = offline;
+    btnEmail.title    = offline ? "Non disponible hors ligne" : "";
+  }
+}
+
+window.addEventListener("online",  updateOfflineUI);
+window.addEventListener("offline", updateOfflineUI);
+updateOfflineUI();
+
 // Enregistrement du Service Worker pour mode PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
-      .register("/static/sw.js")
+      .register("/sw.js", { scope: "/" })
       .catch((err) => {
         console.error("Service worker registration failed:", err);
       });
