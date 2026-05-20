@@ -11,6 +11,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -18,12 +19,27 @@ body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Respect safe-area on notch devices (iPhone X+) */
 .container {
   max-width: 1100px;
   margin: 28px auto;
-  padding: 0 16px 30px;
+  padding: 0 max(16px, env(safe-area-inset-left)) max(30px, env(safe-area-inset-bottom));
+}
+
+/* Prevent 300ms tap delay and text selection on interactive elements */
+button, label, .tab, .radio-option {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Prevent iOS zoom on focus (inputs must be >= 16px) */
+input, select, textarea {
+  font-size: 16px;
 }
 
 .offline-banner {
