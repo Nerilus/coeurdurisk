@@ -4,7 +4,7 @@
 // Les requêtes POST (/api/calc, /api/pdf, /api/email) ne sont jamais interceptées.
 // =============================================================================
 
-const CACHE_NAME = "coeur-risk-cache-v8";
+const CACHE_NAME = "coeur-risk-cache-v9";
 
 // Assets téléchargés et mis en cache dès l'installation du SW
 // (première visite avec internet). Disponibles immédiatement hors ligne.
