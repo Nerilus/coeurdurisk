@@ -7,10 +7,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CoeurRisk" />
-    <link rel="apple-touch-icon" href="/assets/icon-192.png" />
+    <link rel="apple-touch-icon" href="/assets/icon-ffc-192.png" />
     <title>Coeur Risk - SCORE2</title>
     <meta name="theme-color" content="#b3002d" />
-    <link rel="icon" type="image/png" href="/assets/ffc-favicon.png" />
+    <link rel="icon" type="image/png" href="/assets/icon-ffc-192.png" />
     <link rel="manifest" href="/static/manifest.json" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
@@ -28,7 +28,7 @@
       </header>
 
       <div id="offlineBanner" class="offline-banner" hidden aria-live="polite">
-        Mode hors ligne — Le calcul du risque fonctionne. PDF et e-mail indisponibles.
+        Mode hors ligne — Le calcul du risque fonctionne.
       </div>
 
       <nav class="tabs" aria-label="Navigation">
@@ -39,13 +39,9 @@
       <section class="panel tab-panel is-active" id="tab_questionnaire">
         <div class="panel-head">
           <h2>Patient</h2>
-          <div class="demo-actions">
-            <button type="button" id="btnDemoHigh" class="btn btn-secondary">Démo : haut risque</button>
-            <button type="button" id="btnDemoHealthy" class="btn btn-secondary">Démo : sain</button>
-          </div>
         </div>
 
-        <form id="patientForm" class="form-grid">
+        <form id="patientForm" class="form-grid" novalidate>
           <details class="accordion section" open>
             <summary class="accordion-summary"><span class="accordion-title">Mon profil</span></summary>
             <div class="accordion-body">
@@ -317,19 +313,9 @@
 
           <div class="actions">
             <button type="submit" class="btn btn-primary">Calculer</button>
-            <button type="button" id="btnPdf" class="btn btn-primary">Générer PDF</button>
-            <button type="button" id="btnEmail" class="btn btn-secondary">Envoyer par email</button>
+            <button type="button" id="btnReset" class="btn btn-secondary">Réinitialiser</button>
           </div>
 
-          <details class="accordion section">
-            <summary class="accordion-summary"><span class="accordion-title">Envoi email</span></summary>
-            <div class="accordion-body">
-            <label class="field">
-              <span>Email destinataire</span>
-              <input id="email_to" type="email" placeholder="ex: prenom.nom@domaine.com" />
-            </label>
-            </div>
-          </details>
         </form>
       </section>
 

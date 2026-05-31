@@ -4,7 +4,7 @@
 // Les requêtes POST (/api/calc, /api/pdf, /api/email) ne sont jamais interceptées.
 // =============================================================================
 
-const CACHE_NAME = "coeur-risk-cache-v9";
+const CACHE_NAME = "coeur-risk-cache-v10";
 
 // Assets téléchargés et mis en cache dès l'installation du SW
 // (première visite avec internet). Disponibles immédiatement hors ligne.
@@ -15,7 +15,8 @@ const ASSETS = [
   "/static/app.js",
   "/static/manifest.json",
   "/assets/ffc-logo-national.png",
-  "/assets/ffc-favicon.png"
+  "/assets/icon-ffc-192.png",
+  "/assets/icon-ffc-512.png"
 ];
 
 // ── Installation ──────────────────────────────────────────────────────────────

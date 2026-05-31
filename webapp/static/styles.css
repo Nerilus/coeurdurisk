@@ -143,12 +143,6 @@ input, select, textarea {
   font-size: 18px;
 }
 
-.demo-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
 
 .view-toggle {
   display: flex;
@@ -781,6 +775,21 @@ select.is-hidden {
   display: none;
 }
 
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.field.has-error > span {
+  color: var(--danger);
+}
+
+.field.has-error input[type="number"] {
+  border-color: var(--danger);
+}
+
 .radio-option {
   display: flex;
   align-items: center;
@@ -872,10 +881,6 @@ select.is-hidden {
     font-size: 17px;
   }
 
-  .demo-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
 
   .view-toggle {
     width: 100%;

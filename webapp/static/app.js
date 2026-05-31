@@ -483,32 +483,85 @@ function renderResult(data) {
   }
 }
 
+function clearErrors() {
+  form.querySelectorAll(".field-error").forEach((el) => el.remove());
+  form.querySelectorAll(".field.has-error").forEach((el) => el.classList.remove("has-error"));
+}
+
+function addError(field, message) {
+  if (field.querySelector(".field-error")) return; // éviter les doublons
+  field.classList.add("has-error");
+  const err = document.createElement("div");
+  err.className = "field-error";
+  err.textContent = message;
+  field.appendChild(err);
+}
+
+function validateForm() {
+  clearErrors();
+  let valid = true;
+  let firstErrorField = null;
+
+  // Valider les selects (transformés en radios)
+  form.querySelectorAll("select").forEach((select) => {
+    if (!select.value) {
+      const field = select.closest(".field");
+      if (field) {
+        addError(field, "Veuillez sélectionner une réponse.");
+        valid = false;
+        if (!firstErrorField) firstErrorField = field;
+      }
+    }
+  });
+
+  // Valider les champs numériques obligatoires (age, poids, taille)
+  ["age", "poids", "taille"].forEach((id) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    const val = Number(input.value);
+    if (!input.value || val <= 0) {
+      const field = input.closest(".field");
+      if (field) {
+        addError(field, "Veuillez remplir ce champ.");
+        valid = false;
+        if (!firstErrorField) firstErrorField = field;
+      }
+    }
+  });
+
+  // Ouvrir les accordéons contenant des erreurs pour les rendre visibles
+  if (!valid) {
+    form.querySelectorAll(".field.has-error").forEach((field) => {
+      const details = field.closest("details");
+      if (details && !details.open) details.open = true;
+    });
+  }
+
+  if (firstErrorField) {
+    firstErrorField.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  return valid;
+}
+
 async function calcAndRender() {
+  if (!validateForm()) {
+    return;
+  }
+
   const submitBtn = form.querySelector('button[type="submit"]');
   setButtonLoading(submitBtn, true, "Calcul en cours...");
   renderLoading("Calcul des résultats en cours...");
   try {
     const payload = getPayload();
-    let data;
-    if (!navigator.onLine) {
-      // Mode offline : calcul local via score2.js (aucune requête réseau)
-      data = evaluerRisque(payload);
-    } else {
-      const res = await fetch("/api/calc", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || `Erreur HTTP ${res.status}`);
-      }
-      data = await res.json();
-    }
+    // Calcul toujours en local (mode offline)
+    const data = evaluerRisque(payload);
     renderResult(data);
     // Affiche automatiquement l'onglet résultats après calcul
     const tabBtn = document.querySelector('.tab[data-tab="resultats"]');
     if (tabBtn) tabBtn.click();
+    // Scroll vers le haut pour voir les résultats
+    window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {
     resultEl.innerHTML = `<span class="danger"><b>Erreur</b> : ${e.message}</span>`;
   } finally {
@@ -521,203 +574,13 @@ form.addEventListener("submit", (ev) => {
   calcAndRender();
 });
 
-document.getElementById("btnPdf").addEventListener("click", async () => {
-  const btnPdf = document.getElementById("btnPdf");
-  setButtonLoading(btnPdf, true, "Génération PDF...");
-  renderLoading("Préparation du PDF...");
-  try {
-    const payload = getPayload();
-    const res = await fetch("/api/pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const msg = await res.text();
-      throw new Error(msg || `Erreur HTTP ${res.status}`);
-    }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "rapport_cardiovasculaire.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    resultEl.innerHTML = `<span class="danger"><b>Erreur PDF</b> : ${e.message}</span>`;
-  } finally {
-    setButtonLoading(btnPdf, false);
-  }
+document.getElementById("btnReset").addEventListener("click", () => {
+  clearFormOnLoad();
+  clearErrors();
+  resultEl.innerHTML = "";
+  const tabBtn = document.querySelector('.tab[data-tab="questionnaire"]');
+  if (tabBtn) tabBtn.click();
 });
-
-document.getElementById("btnEmail").addEventListener("click", async () => {
-  const btnEmail = document.getElementById("btnEmail");
-  setButtonLoading(btnEmail, true, "Envoi en cours...");
-  try {
-    const emailTo = document.getElementById("email_to")?.value?.trim();
-    if (!emailTo) {
-      resultEl.innerHTML = `<span class="danger"><b>Email</b> : renseignez une adresse destinataire.</span>`;
-      return;
-    }
-    renderLoading("Envoi de l'email en cours...");
-
-    const payload = getPayload();
-    payload.email_to = emailTo;
-    payload.email_subject = "Vos resultats cardiovasculaires (rapport PDF joint)";
-    payload.email_body = "";
-
-    const res = await fetch("/api/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const msg = await res.text();
-      throw new Error(msg || `Erreur HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    if (data && data.ok) {
-      resultEl.innerHTML = `<span class="ok"><b>Email envoyé</b></span>`;
-    } else {
-      resultEl.innerHTML = `<span class="danger"><b>Email</b> : envoi incertain.</span>`;
-    }
-  } catch (e) {
-    resultEl.innerHTML = `<span class="danger"><b>Erreur</b> : ${e.message}</span>`;
-  } finally {
-    setButtonLoading(btnEmail, false);
-  }
-});
-
-const demoHigh = {
-  sexe: "H",
-  age: 52,
-  poids: 85,
-  taille: 178,
-  antecedents_familiaux: "oui",
-  bilan_cardiaque: "non",
-  consultation_cardiologue: "non",
-  activite_weekend: "television",
-  heures_assis: ">7h",
-  activite_physique: "<30min",
-  tabac: "oui",
-  tabac_passif: "oui",
-  fruits_legumes: "2-5/sem",
-  ajout_sel: "oui",
-  preparation_repas: "industriel",
-  charcuterie_fromage: "oui",
-  stress: "permanent",
-  coleres: "frequent",
-  charge_familiale_seule: "non",
-  alcool_excessif: "non",
-  boissons_energisantes: "oui",
-  hypertension: "oui",
-  tension_systolique: 148,
-  tension_diastolique: 92,
-  cholesterol_eleve: "oui",
-  cholesterol_total: 6.8,
-  cholesterol_ldl: 4.2,
-  cholesterol_hdl: 1.1,
-  diabete: "non",
-  glycemie: 1.05,
-  apnee_sommeil: "non",
-  troubles_sommeil: "oui",
-};
-
-const demoHealthy = {
-  sexe: "F",
-  age: 35,
-  poids: 60,
-  taille: 165,
-  antecedents_familiaux: "non",
-  bilan_cardiaque: "oui",
-  consultation_cardiologue: "oui",
-  activite_weekend: "sport",
-  heures_assis: "<3h",
-  activite_physique: ">30min",
-  tabac: "non",
-  tabac_passif: "non",
-  fruits_legumes: "5+/jour",
-  ajout_sel: "non",
-  preparation_repas: "maison",
-  charcuterie_fromage: "non",
-  stress: "jamais",
-  coleres: "jamais",
-  charge_familiale_seule: "non",
-  alcool_excessif: "non",
-  boissons_energisantes: "non",
-  hypertension: "non",
-  tension_systolique: null,
-  tension_diastolique: null,
-  cholesterol_eleve: "non",
-  cholesterol_total: null,
-  cholesterol_ldl: null,
-  cholesterol_hdl: null,
-  diabete: "non",
-  glycemie: null,
-  apnee_sommeil: "non",
-  troubles_sommeil: "non",
-};
-
-function loadDemo(d) {
-  const conso =
-    d.alcool_excessif === "oui" && d.boissons_energisantes === "oui"
-      ? "les_deux"
-      : d.alcool_excessif === "oui"
-      ? "alcool"
-      : d.boissons_energisantes === "oui"
-      ? "boissons_energisantes"
-      : "aucun";
-
-  setIfExists("sexe", d.sexe);
-  setIfExists("age", d.age);
-  setIfExists("poids", d.poids);
-  setIfExists("taille", d.taille);
-  setIfExists("antecedents_familiaux", d.antecedents_familiaux);
-  setIfExists("bilan_cardiaque", d.bilan_cardiaque);
-  setIfExists("consultation_cardiologue", d.consultation_cardiologue);
-  setIfExists("activite_weekend", d.activite_weekend);
-  setIfExists("heures_assis", d.heures_assis);
-  setIfExists("activite_physique", d.activite_physique);
-  setIfExists("tabac", d.tabac);
-  setIfExists("tabac_passif", d.tabac_passif);
-  setIfExists("fruits_legumes", d.fruits_legumes);
-  setIfExists("ajout_sel", d.ajout_sel);
-  setIfExists("preparation_repas", d.preparation_repas);
-  setIfExists("charcuterie_fromage", d.charcuterie_fromage);
-  setIfExists("stress", d.stress);
-  setIfExists("coleres", d.coleres);
-  setIfExists("charge_familiale_seule", d.charge_familiale_seule);
-  setIfExists("consommation_stimulants", conso);
-  setIfExists("hypertension", d.hypertension);
-  setIfExists("tension_systolique", d.tension_systolique);
-  setIfExists("tension_diastolique", d.tension_diastolique);
-  setIfExists("cholesterol_eleve", d.cholesterol_eleve);
-  setIfExists("cholesterol_total", d.cholesterol_total);
-  setIfExists("cholesterol_ldl", d.cholesterol_ldl);
-  setIfExists("cholesterol_hdl", d.cholesterol_hdl);
-  setIfExists("diabete", d.diabete);
-  setIfExists("glycemie", d.glycemie);
-  setIfExists("apnee_sommeil", d.apnee_sommeil);
-  setIfExists("troubles_sommeil", d.troubles_sommeil);
-
-  const setUnknown = (id, isUnknown) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.checked = !!isUnknown;
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-  };
-  setUnknown("tension_inconnue", d.tension_systolique == null && d.tension_diastolique == null);
-  setUnknown("cholesterol_total_inconnu", d.cholesterol_total == null);
-  setUnknown("cholesterol_hdl_inconnu", d.cholesterol_hdl == null);
-  setUnknown("glycemie_inconnue", d.glycemie == null);
-}
-
-document.getElementById("btnDemoHigh").addEventListener("click", () => loadDemo(demoHigh));
-document.getElementById("btnDemoHealthy").addEventListener("click", () => loadDemo(demoHealthy));
 
 transformSelectsToRadios();
 const tabs = setupTabs();
@@ -727,21 +590,8 @@ clearFormOnLoad();
 // ── Gestion du mode offline ──────────────────────────────────────────────────
 
 function updateOfflineUI() {
-  const banner   = document.getElementById("offlineBanner");
-  const btnPdf   = document.getElementById("btnPdf");
-  const btnEmail = document.getElementById("btnEmail");
-  const offline  = !navigator.onLine;
-
-  if (banner) banner.hidden = !offline;
-
-  if (btnPdf) {
-    btnPdf.disabled = offline;
-    btnPdf.title    = offline ? "Non disponible hors ligne" : "";
-  }
-  if (btnEmail) {
-    btnEmail.disabled = offline;
-    btnEmail.title    = offline ? "Non disponible hors ligne" : "";
-  }
+  const banner = document.getElementById("offlineBanner");
+  if (banner) banner.hidden = !(!navigator.onLine);
 }
 
 window.addEventListener("online",  updateOfflineUI);
