@@ -156,9 +156,6 @@ function renderLoading(message = "Chargement...") {
 }
 
 function getPayload() {
-  const conso = document.getElementById("consommation_stimulants").value;
-  const alcoolExcessif = conso === "alcool" || conso === "les_deux" ? "oui" : "non";
-  const boissonsEnergisantes = conso === "boissons_energisantes" || conso === "les_deux" ? "oui" : "non";
   const sommeil = document.getElementById("apnee_sommeil").value;
 
   const payload = {
@@ -186,8 +183,8 @@ function getPayload() {
     stress: document.getElementById("stress").value,
     coleres: "jamais",
     charge_familiale_seule: "non",
-    alcool_excessif: alcoolExcessif,
-    boissons_energisantes: boissonsEnergisantes,
+    alcool_excessif: document.getElementById("alcool_excessif").value,
+    boissons_energisantes: document.getElementById("boissons_energisantes").value,
 
     // Données médicales
     hypertension: document.getElementById("hypertension").value,
